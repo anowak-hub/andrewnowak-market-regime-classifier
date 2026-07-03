@@ -18,7 +18,7 @@ DEFAULT_TICKERS = {
     "VIX": "^VIX"
 }
 
-def download_ticker(ticker: str, start: str = "2005-01-01", end: str | None = None, force_refresh: bool = False) -> pd.DataFrame:
+def download_ticker(ticker: str, start: str = "1993-01-01", end: str | None = None, force_refresh: bool = False) -> pd.DataFrame:
     """
     Download a single ticker's OHLCV data, using a local CSV cache
     in data/raw/ when available.
@@ -39,7 +39,7 @@ def download_ticker(ticker: str, start: str = "2005-01-01", end: str | None = No
     df.to_csv(cache_path)
     return df
 
-def load_all(tickers: dict[str, str] = None, start: str = "2005-01-01", end: str | None = None, force_refresh: bool = False) -> dict[str, pd.DataFrame]:
+def load_all(tickers: dict[str, str] = None, start: str = "1993-01-01", end: str | None = None, force_refresh: bool = False) -> dict[str, pd.DataFrame]:
     """
     Download/load every ticker in `tickers` (default: SPY, QQQ, VIX).
     Returns a dict of {name: DataFrame}.

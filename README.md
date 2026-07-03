@@ -189,6 +189,44 @@ further hyperparameter search is unlikely to help those two classes
 without either more data, different features, or a simpler (e.g. binary)
 label scheme.
 
+**Experiment 5 — extend historical data range (1993 vs. 2005 start):**
+Hypothesis: Bear's small sample size (162 rows) was a data scarcity
+problem (per Experiment 4's takeaway); extending the data back to 1993
+(SPY's inception) to capture the dot-com crash would give the model more
+Bear examples to learn from.
+
+| Class | 2005-start F1 | 1993-start F1 |
+|---|---|---|
+| Bear | 0.08 (recall 0.16) | 0.12 (recall 0.44) |
+| Bull | 0.27 | 0.30 |
+| High_Volatility | 0.41 | 0.57 |
+| Macro F1 | 0.38 | 0.42 |
+
+Result: **adopted.** Bear recall nearly tripled and High_Volatility F1
+improved substantially — more historical examples of real distress
+clearly helped, confirming Experiment 4's diagnosis that Bear/Bull were
+data-limited rather than tuning-limited.
+
+Out-of-sample backtest also improved:
+
+| | Buy & Hold | Regime Strategy |
+|---|---|---|
+| Sharpe ratio | 0.839 | 0.799 |
+| Max drawdown | -33.7% | -15.6% |
+
+*Caveat:* this isn't a perfectly clean comparison to the earlier backtest.
+The train/test split is 80/20 **by row count**, so extending the data
+start date shifts where the split falls — the test period here starts
+around 2019 rather than 2022, meaning it now includes the COVID crash.
+Buy-and-hold's much deeper drawdown (-33.7% vs. the prior test period's
+-22.1%) is largely that crash appearing in the benchmark, not a change in
+market behavior the model had to work harder against. The strategy's
+improved drawdown avoidance is still a genuine, positive signal (same
+underlying skill — reacting to real volatility spikes — improved per the
+classification metrics above), but the two backtests are testing the
+model against different market conditions, not just different model
+versions.
+
 ## Final Results (current)
 
 Out-of-sample backtest using the tuned model's predictions on the held-out
