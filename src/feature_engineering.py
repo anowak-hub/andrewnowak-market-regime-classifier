@@ -80,7 +80,7 @@ def build_features(spy: pd.DataFrame, vix: pd.DataFrame) -> pd.DataFrame:
     fwd_return = close.shift(-20) / close - 1
     df["future_return_20d"] = fwd_return
     df["regime"] = np.select(
-        [fwd_return > 0.05, fwd_return < -0.05],
+        [fwd_return > 0.08, fwd_return < -0.08],
         ["Bull", "Bear"],
         default="Sideways",
     )
