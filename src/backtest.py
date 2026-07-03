@@ -90,6 +90,21 @@ def plot_equity_curves(df: pd.DataFrame, save: bool = True):
 
     plt.close(fig)
 
+def confidence_filtered_regimes(model, X_test_scaled, encoder, test_index,
+                                  threshold: float = 0.45, default_regime: str = "Sideways") -> pd.Series:
+    """
+    Only trust the model's predicted regime when its confidence
+    (max predicted probability) clears `threshold`. Otherwise, fall
+    back to `default_regime` (neutral) rather than acting on a guess
+    the model itself isn't sure about.
+    """
+    probs = model.predict_proba(X_test_scaled)
+    max_conf = probs.max(axis=1)
+    pred_idx = probs.argmax(axis=1)
+    pred_labels = encoder.inverse_transform(pred_idx)
+
+    final_labels = np.where(max_conf >= threshold, pred_labels, default_regime)
+    return pd.Series(final_labels, index=test_index)
 
 if __name__ == "__main__":
     # Example standalone run using actual (not predicted) regimes,

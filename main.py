@@ -53,12 +53,35 @@ def main():
     results = evaluate(artifacts)
 
     print("\n" + "=" * 60)
-    print("STEP 5: Backtesting (out-of-sample, using PREDICTED regimes)")
+    print("STEP 5: Backtesting (out-of-sample, confidence-filtered)")
     print("=" * 60)
 
-    # Decode predicted labels back from integers to strings
-    predicted_labels = artifacts["encoder"].inverse_transform(results["predictions"])
-    predicted_series = pd.Series(predicted_labels, index=artifacts["test_index"])
+    from backtest import confidence_filtered_regimes  # add to the import line at top instead if you prefer
+
+    predicted_series = confidence_filtered_regimes(
+        model=artifacts["model"],
+        X_test_scaled=artifacts["X_test_scaled"],
+        encoder=artifacts["encoder"],
+        test_index=artifacts["test_index"],
+        threshold=0.45,
+    )
+
+    predicted_series = confidence_filtered_regimes(
+        model=artifacts["model"],
+        X_test_scaled=artifacts["X_test_scaled"],
+        encoder=artifacts["encoder"],
+        test_index=artifacts["test_index"],
+        threshold=0.45,
+    )
+
+    # --- diagnostic: how often does the model actually clear the threshold? ---
+    probs = artifacts["model"].predict_proba(artifacts["X_test_scaled"])
+    max_conf = probs.max(axis=1)
+    print(f"% of predictions above 0.45 confidence: {(max_conf >= 0.45).mean():.2%}")
+    print(f"Mean confidence: {max_conf.mean():.3f}")
+    # --- end diagnostic ---
+
+    spy_close = data["SPY"]["Close"].reindex(features.index)
 
     spy_close = data["SPY"]["Close"].reindex(features.index)
     bt = run_backtest(spy_close, predicted_series)
