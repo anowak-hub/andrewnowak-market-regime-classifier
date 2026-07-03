@@ -84,9 +84,12 @@ def build_features(spy: pd.DataFrame, vix: pd.DataFrame) -> pd.DataFrame:
         ["Bull", "Bear"],
         default="Sideways",
     )
-    # Optional: flag high-volatility periods regardless of direction
-    high_vol_threshold = df["vol_20d"].quantile(0.85)
-    df.loc[df["vol_20d"] > high_vol_threshold, "regime"] = "High_Volatility"
+    # Forward-looking volatility: std of daily returns over the NEXT 20 days
+    future_vol_20d = daily_ret.rolling(window=20).std().shift(-20)
+    df["future_vol_20d"] = future_vol_20d
+
+    high_vol_threshold = future_vol_20d.quantile(0.85)
+    df.loc[future_vol_20d > high_vol_threshold, "regime"] = "High_Volatility"
 
     df = df.dropna()
     return df
