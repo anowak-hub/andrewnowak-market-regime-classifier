@@ -227,25 +227,51 @@ classification metrics above), but the two backtests are testing the
 model against different market conditions, not just different model
 versions.
 
+**Note on methodology:** starting here, the train/test split uses a
+fixed date boundary (`test_start_date="2018-01-01"` in `train_model.py`)
+instead of an 80/20 row-count split. This was changed because the
+percentage-based split meant the test period silently moved whenever the
+amount of historical training data changed — exactly what happened
+between Experiments 4 and 5. All results from this point forward are
+directly comparable.
+
 ## Final Results (current)
 
-Out-of-sample backtest using the tuned model's predictions on the held-out
-test period:
+As of Experiment 5, the train/test split changed from a row-count
+percentage to a **fixed date boundary** (test period: 2018-01-01 onward,
+2116 rows) — this fixes a subtle bug where extending the historical data
+range was silently shifting which market conditions ended up in the test
+set. All results below use this fixed boundary and are directly
+comparable to each other and to any future experiment.
 
-| | Buy & Hold | Regime Strategy (tuned model) |
+Test set class distribution: Sideways 1467, High_Volatility 316,
+Bull 263, Bear 70.
+
+| Class | Precision | Recall | F1 |
+|---|---|---|---|
+| Bear | 0.06 | 0.41 | 0.10 |
+| Bull | 0.23 | 0.30 | 0.26 |
+| High_Volatility | 0.51 | 0.50 | 0.51 |
+| Sideways | 0.88 | 0.57 | 0.69 |
+| **Accuracy** | | | **0.52** |
+
+Out-of-sample backtest (test period: 2018-01-01 to present, covering the
+Dec 2018 selloff, COVID crash, and 2022 bear market):
+
+| | Buy & Hold | Regime Strategy |
 |---|---|---|
-| Total return | 87.3% | 48.6% |
-| Annualized return | 15.95% | 9.79% |
-| Annualized volatility | 17.48% | 12.00% |
-| Sharpe ratio | 0.913 | 0.816 |
-| Max drawdown | -22.1% | -23.8% |
+| Total return | 218.8% | 73.8% |
+| Annualized return | 14.81% | 6.81% |
+| Annualized volatility | 19.19% | 9.75% |
+| Sharpe ratio | 0.772 | 0.698 |
+| Max drawdown | -33.7% | -14.8% |
 
-Tuning meaningfully closed the Sharpe ratio gap to buy-and-hold (0.531 →
-0.816), driven mostly by better precision on the well-populated Sideways
-and High_Volatility classes. The strategy still doesn't beat buy-and-hold
-on raw or risk-adjusted return, and its max drawdown is now marginally
-worse than the benchmark's — an honest tradeoff worth stating plainly
-rather than only citing the Sharpe improvement.
+The strategy trails buy-and-hold on raw and risk-adjusted return, but
+cuts max drawdown by more than half (-14.8% vs. -33.7%). Given the
+model's precision limitations (especially Bear at 0.06), this reads as a
+genuine, if modest, risk-reduction result rather than a market-timing
+edge — the model is more useful for damping volatility than for
+capturing upside.
 
 ## Notes / next steps
 
