@@ -26,17 +26,23 @@ ALLOCATION = {
     "High_Volatility": 0.25,
 }
 
+ALLOCATION_BINARY = {
+    "Risk_On": 1.0,
+    "Risk_Off": 0.0
+}
 
-def run_backtest(spy_close: pd.Series, predicted_regimes: pd.Series) -> pd.DataFrame:
+
+def run_backtest(spy_close: pd.Series, predicted_regimes: pd.Series, allocation_map: dict = None) -> pd.DataFrame:
     """
     spy_close: daily close prices, indexed by date
     predicted_regimes: predicted regime label per date (same index, or subset)
     """
+    allocation_map = allocation_map or ALLOCATION
     df = pd.DataFrame(index=predicted_regimes.index)
     df["close"] = spy_close.reindex(df.index)
     df["daily_return"] = df["close"].pct_change().fillna(0)
     df["regime"] = predicted_regimes
-    df["allocation"] = df["regime"].map(ALLOCATION).fillna(0.5)
+    df["allocation"] = df["regime"].map(allocation_map).fillna(0.5)
 
     # Strategy return = allocation applied to *that day's* return
     df["strategy_return"] = df["allocation"].shift(1).fillna(0) * df["daily_return"]
@@ -74,7 +80,7 @@ def summarize(df: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
-def plot_equity_curves(df: pd.DataFrame, save: bool = True):
+def plot_equity_curves(df: pd.DataFrame, save: bool = True, filename: str = "equity_curve.png"):
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df.index, df["buy_hold_equity"], label="Buy & Hold SPY")
     ax.plot(df.index, df["strategy_equity"], label="Regime Strategy")
@@ -84,7 +90,7 @@ def plot_equity_curves(df: pd.DataFrame, save: bool = True):
     plt.tight_layout()
 
     if save:
-        out_path = FIGURES_DIR / "equity_curve.png"
+        out_path = FIGURES_DIR / filename
         fig.savefig(out_path, dpi=150)
         print(f"Saved equity curve -> {out_path}")
 

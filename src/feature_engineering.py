@@ -91,6 +91,13 @@ def build_features(spy: pd.DataFrame, vix: pd.DataFrame) -> pd.DataFrame:
     high_vol_threshold = future_vol_20d.quantile(0.85)
     df.loc[future_vol_20d > high_vol_threshold, "regime"] = "High_Volatility"
 
+    # Binary reformulation: groups Bear+High_Volatility as "risk off"
+    # vs. Bull+Sideways as "risk on". Derived from the same regime column
+    # above, so no new labeling thresholds/leakage risk introduced.
+    df["regime_binary"] = np.where(
+        df["regime"].isin(["Bear", "High_Volatility"]), "Risk_Off", "Risk_On"
+    )
+    
     df = df.dropna()
     return df
 

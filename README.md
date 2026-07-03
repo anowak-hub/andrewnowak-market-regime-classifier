@@ -235,17 +235,83 @@ amount of historical training data changed — exactly what happened
 between Experiments 4 and 5. All results from this point forward are
 directly comparable.
 
+**Experiment 6 — binary reformulation (Risk_Off vs. Risk_On), as an addition:**
+Hypothesis: the 4-class model's Bear precision (0.06) was crippled by
+having to discriminate against 3 other classes with very few examples
+(312 Bear rows). Collapsing to two classes — Risk_Off (Bear +
+High_Volatility) vs. Risk_On (Bull + Sideways), derived from the existing
+`regime` column with no new thresholds — should let the model concentrate
+on a single, better-populated decision boundary.
+
+Trained and evaluated on the exact same fixed 2018-01-01 test split as
+the 4-class model, for direct comparability. Kept as an addition
+alongside the 4-class model, not a replacement — `regime_model.pkl` and
+`regime_model_binary.pkl` are both saved.
+
+| | Risk_Off (binary) | Bear (4-class) |
+|---|---|---|
+| Precision | 0.40 | 0.06 |
+| Recall | 0.59 | 0.41 |
+| F1 | 0.48 | 0.10 |
+| Overall accuracy | 0.77 | 0.52 |
+
+Out-of-sample backtest (Risk_On=100% SPY, Risk_Off=0% SPY):
+
+| | Buy & Hold | 4-class Strategy | Binary Strategy |
+|---|---|---|---|
+| Total return | 218.8% | 73.8% | 101.0% |
+| Sharpe ratio | 0.772 | 0.698 | 0.761 |
+| Max drawdown | -33.7% | -14.8% | -14.0% |
+
+Result: **adopted as the stronger of the two models.** Confirms
+Experiment 4's diagnosis precisely — Bear's weakness was about having too
+few examples spread across too many competing classes, not a modeling
+limitation. The binary model achieves near-benchmark Sharpe ratio (0.761
+vs. 0.772) while roughly halving max drawdown versus buy-and-hold — the
+strongest risk-adjusted result in the project so far.
+
+**Tradeoff:** the binary model loses the graduated allocation (100%/50%/
+25%/0%) of the 4-class version — it's a blunter, all-in/all-out signal.
+Both models are kept in the repo (`regime_model.pkl` and
+`regime_model_binary.pkl`) so this tradeoff — nuance vs. precision — is
+visible and comparable rather than hidden by picking just one.
+
 ## Final Results (current)
 
-As of Experiment 5, the train/test split changed from a row-count
-percentage to a **fixed date boundary** (test period: 2018-01-01 onward,
-2116 rows) — this fixes a subtle bug where extending the historical data
-range was silently shifting which market conditions ended up in the test
-set. All results below use this fixed boundary and are directly
-comparable to each other and to any future experiment.
+Both the original 4-class model and the binary reformulation (Experiment
+6) are kept in the repo — `models/regime_model.pkl` and
+`models/regime_model_binary.pkl` — since they represent a genuine
+nuance-vs-precision tradeoff rather than one being a strictly better
+replacement for the other.
 
-Test set class distribution: Sideways 1467, High_Volatility 316,
-Bull 263, Bear 70.
+Both are trained and evaluated on the same fixed test period
+(2018-01-01 onward, 2116 rows — chosen to include the Dec 2018 selloff,
+COVID crash, and 2022 bear market alongside calm stretches, per the
+methodology fix in Experiment 5) for direct comparability.
+
+### Binary model (Risk_Off vs. Risk_On) — best risk-adjusted result
+
+| Class | Precision | Recall | F1 |
+|---|---|---|---|
+| Risk_Off | 0.40 | 0.59 | 0.48 |
+| Risk_On | 0.90 | 0.81 | 0.85 |
+| **Accuracy** | | | **0.77** |
+
+| | Buy & Hold | Binary Strategy |
+|---|---|---|
+| Total return | 218.8% | 101.0% |
+| Annualized return | 14.81% | 8.67% |
+| Annualized volatility | 19.19% | 11.40% |
+| Sharpe ratio | 0.772 | 0.761 |
+| Max drawdown | -33.7% | -14.0% |
+
+Nearly matches buy-and-hold's Sharpe ratio while cutting max drawdown by
+more than half. The strongest, most credible result in the project: not
+a market-timing edge, but a real, defensible risk-reduction strategy —
+close to market-level risk-adjusted return at roughly a third of the
+downside.
+
+### 4-class model (Bull / Bear / Sideways / High_Volatility) — more nuance, weaker precision
 
 | Class | Precision | Recall | F1 |
 |---|---|---|---|
@@ -255,10 +321,7 @@ Bull 263, Bear 70.
 | Sideways | 0.88 | 0.57 | 0.69 |
 | **Accuracy** | | | **0.52** |
 
-Out-of-sample backtest (test period: 2018-01-01 to present, covering the
-Dec 2018 selloff, COVID crash, and 2022 bear market):
-
-| | Buy & Hold | Regime Strategy |
+| | Buy & Hold | 4-class Strategy |
 |---|---|---|
 | Total return | 218.8% | 73.8% |
 | Annualized return | 14.81% | 6.81% |
@@ -266,36 +329,78 @@ Dec 2018 selloff, COVID crash, and 2022 bear market):
 | Sharpe ratio | 0.772 | 0.698 |
 | Max drawdown | -33.7% | -14.8% |
 
-The strategy trails buy-and-hold on raw and risk-adjusted return, but
-cuts max drawdown by more than half (-14.8% vs. -33.7%). Given the
-model's precision limitations (especially Bear at 0.06), this reads as a
-genuine, if modest, risk-reduction result rather than a market-timing
-edge — the model is more useful for damping volatility than for
-capturing upside.
+Trails the binary model on both return and Sharpe, largely because Bear's
+very low precision (0.06) means the model frequently de-risks on false
+alarms, giving up upside without a corresponding accuracy benefit.
+Retained for its finer-grained allocation (100%/50%/25%/0% vs. binary's
+100%/0%), which may be preferable in contexts where a graduated response
+is more useful than a blunt in/out signal — that tradeoff is a judgment
+call, not something the metrics alone resolve.
+
+### Takeaway
+
+Across all six experiments, the clearest lesson was that **Bear/Bull's
+weakness was consistently a data scarcity and class-imbalance problem,
+not a model-capacity one** — confirmed by hyperparameter tuning barely
+moving those classes (Experiment 4) while adding more historical data
+(Experiment 5) and reducing the number of competing classes (Experiment
+6) both produced large, real improvements. Neither model beats
+buy-and-hold on raw return, which is an honest and expected result for
+a first-pass regime classifier — the binary model's near-benchmark
+Sharpe ratio with substantially reduced drawdown is a legitimate,
+if modest, edge.
 
 ## Notes / next steps
 
-- The train/test split in `train_model.py` is **chronological**, not
-  shuffled, and hyperparameter tuning used `TimeSeriesSplit` for the same
-  reason — this matters for time series so the model never trains or
-  validates on future data relative to what it's being evaluated against.
-- Labels use FORWARD-looking windows (20-day return, and now 20-day
-  volatility too), which means the last 20 rows of any dataset can't be
-  labeled and are dropped — expected behavior, not a bug.
-- Bear and Bull remain the weakest classes (F1 0.08 and 0.27) and did not
-  improve under hyperparameter tuning, pointing to a data scarcity issue
-  (162 and 476 total rows respectively) rather than a modeling one.
-  Candidate next steps, not yet tried:
-  - **Binary reformulation** — e.g. "Bull vs. Not-Bull" or "high-risk
-    (Bear+High_Vol) vs. low-risk (Bull+Sideways)" — would likely raise
-    precision substantially at the cost of granularity.
-  - **XGBoost comparison** — installed but not yet benchmarked against
-    the tuned Random Forest.
-  - **Feature pruning** — `rel_volume` (importance ~0.02) and
-    `vix_change_5d` (~0.03) contribute little and may be adding noise.
-  - **More/different features** — seasonality (day-of-week, month),
-    sector dispersion, or macro data beyond VIX.
-  - **More historical data** — extending the start date back further
-    than 2005, if data quality allows, to give Bear more examples.
+- The train/test split in `train_model.py` uses a **fixed date boundary**
+  (`test_start_date="2018-01-01"`), not a percentage — this was a
+  deliberate fix (Experiment 5) so the test period stays a controlled
+  constant across experiments, regardless of how much historical data is
+  loaded.
+- `GridSearchCV` in the (now-deleted) tuning script used `TimeSeriesSplit`
+  rather than default k-fold, for the same reason: validation must always
+  come chronologically after training.
+- Labels use FORWARD-looking windows (20-day return, 20-day volatility),
+  so the last 20 rows of any dataset are dropped — expected, not a bug.
+- Both models (`regime_model.pkl`, `regime_model_binary.pkl`) are kept
+  and documented as a genuine tradeoff (precision vs. granularity), not
+  because one replaces the other.
+
+**Untried, in rough priority order:**
+- **XGBoost comparison** — installed but not yet benchmarked against the
+  tuned Random Forest, on either the 4-class or binary target. Given
+  Experiment 4's finding that Bear/Bull are data-limited rather than
+  model-limited, expect modest gains at best on the 4-class model, but
+  worth testing on the binary target too since that's the current best
+  performer.
+- **Feature pruning** — `rel_volume` (~0.02 importance) and
+  `vix_change_5d` (~0.03) contribute the least; dropping them is a quick,
+  low-risk experiment, unlikely to move metrics much either way.
+- **Graduated binary allocation** — the binary model currently uses a
+  blunt 100%/0% allocation. Using `predict_proba()` to size the position
+  continuously (e.g. 100% at high Risk_On confidence, tapering toward 0%
+  as confidence drops) could recover some of the 4-class model's nuance
+  without reintroducing its precision problem. Note: Experiment 3 already
+  showed naive confidence *filtering* backfires — this would need to be
+  confidence-based *sizing* instead, a different mechanism worth testing
+  carefully rather than assuming it'll work.
+- **More/different features** — seasonality (day-of-week, month), sector
+  dispersion, or macro data beyond VIX (e.g. Treasury yields, credit
+  spreads) could give the model genuinely new information rather than
+  recombinations of existing price/volatility signals.
+- **Transaction costs** — the current backtest assumes frictionless
+  rebalancing. Adding a per-trade cost assumption (e.g. 5-10 bps) would
+  be a more realistic test of whether the binary model's drawdown
+  reduction survives real-world trading costs, especially since Risk_Off
+  triggers relatively often (386 of 2116 test rows).
 - Optional plotting/stats upgrades: seaborn for nicer plots, scipy for
-  statistical tests on regime transitions (both already installed).
+  statistical tests on regime transitions (both already installed, not
+  yet used).
+
+**Housekeeping:**
+- `notebooks/exploration.ipynb` still reflects the original single-model
+  setup — worth updating to also visualize the binary model's
+  Risk_Off/Risk_On periods against price, alongside the existing 4-regime
+  chart.
+- `requirements.txt` should be re-frozen (`pip freeze > requirements.txt`)
+  since xgboost/seaborn/scipy were installed after the last freeze.

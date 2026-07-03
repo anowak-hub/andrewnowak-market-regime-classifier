@@ -65,6 +65,29 @@ def main():
     print(summary.to_string())
     plot_equity_curves(bt)
 
+    print("\n" + "=" * 60)
+    print("STEP 6: Training BINARY model (Risk_Off vs Risk_On)")
+    print("=" * 60)
+    binary_artifacts = train(features, model_type="random_forest", target_col="regime_binary")
+    save_model(binary_artifacts, filename="regime_model_binary.pkl")
+
+    print("\n" + "=" * 60)
+    print("STEP 7: Evaluating BINARY model")
+    print("=" * 60)
+    binary_results = evaluate(binary_artifacts, filename="confusion_matrix_binary.png")
+
+    print("\n" + "=" * 60)
+    print("STEP 8: Backtesting BINARY model (out-of-sample)")
+    print("=" * 60)
+    binary_pred_labels = binary_artifacts["encoder"].inverse_transform(binary_results["predictions"])
+    binary_pred_series = pd.Series(binary_pred_labels, index=binary_artifacts["test_index"])
+
+    from backtest import ALLOCATION_BINARY
+    binary_bt = run_backtest(spy_close, binary_pred_series, allocation_map=ALLOCATION_BINARY)
+    binary_summary = summarize(binary_bt)
+    print(binary_summary.to_string())
+    plot_equity_curves(binary_bt, filename="equity_curve_binary.png")
+
     print("\nPipeline complete. See figures/ and models/ for outputs.")
 
 

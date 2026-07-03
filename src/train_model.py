@@ -38,22 +38,23 @@ FEATURE_COLUMNS = [
 DEFAULT_TEST_START_DATE = "2018-01-01"
 
 
-def prepare_xy(df: pd.DataFrame):
+def prepare_xy(df: pd.DataFrame, target_col: str = "regime"):
     cols = [c for c in FEATURE_COLUMNS if c in df.columns]
     X = df[cols]
-    y = df["regime"]
+    y = df[target_col]
     return X, y, cols
 
 
 def train(df: pd.DataFrame, model_type: str = "random_forest",
-          test_start_date: str = DEFAULT_TEST_START_DATE, random_state: int = 42):
+          test_start_date: str = DEFAULT_TEST_START_DATE, random_state: int = 42,
+          target_col: str = "regime"):
     """
     Trains a model on a chronological split: everything before
     `test_start_date` is training data, everything on/after it is the
     held-out test set. Never shuffled, since this is time-series data
     and shuffling would leak future information into training.
     """
-    X, y, feature_cols = prepare_xy(df)
+    X, y, feature_cols = prepare_xy(df, target_col=target_col)
 
     encoder = LabelEncoder()
     y_encoded = encoder.fit_transform(y)

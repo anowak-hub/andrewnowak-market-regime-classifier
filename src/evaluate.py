@@ -15,7 +15,7 @@ FIGURES_DIR = Path(__file__).resolve().parents[1] / "figures"
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def evaluate(artifacts: dict, save_plot: bool = True) -> dict:
+def evaluate(artifacts: dict, save_plot: bool = True, filename: str = "confusion_matrix.png") -> dict:
     model = artifacts["model"]
     X_test_scaled = artifacts["X_test_scaled"]
     y_test = artifacts["y_test"]
@@ -40,7 +40,7 @@ def evaluate(artifacts: dict, save_plot: bool = True) -> dict:
     plt.tight_layout()
 
     if save_plot:
-        out_path = FIGURES_DIR / "confusion_matrix.png"
+        out_path = FIGURES_DIR / filename
         fig.savefig(out_path, dpi=150)
         print(f"\nSaved confusion matrix -> {out_path}")
 
