@@ -56,7 +56,7 @@ def train(df: pd.DataFrame, model_type: str = "random_forest", test_size: float 
         model = LogisticRegression(max_iter=1000, multi_class="multinomial")
     else:
         model = RandomForestClassifier(
-            n_estimators=300, max_depth=6, random_state=random_state, class_weight="balanced"
+            n_estimators=300, max_depth=8, min_samples_leaf=10, random_state=random_state, class_weight="balanced"
         )
 
     model.fit(X_train_scaled, y_train)
