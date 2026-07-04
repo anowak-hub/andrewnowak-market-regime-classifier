@@ -276,6 +276,32 @@ Both models are kept in the repo (`regime_model.pkl` and
 `regime_model_binary.pkl`) so this tradeoff — nuance vs. precision — is
 visible and comparable rather than hidden by picking just one.
 
+**Experiment 7 — XGBoost vs. Random Forest (both targets):**
+Hypothesis: gradient boosting might outperform Random Forest, given it's
+generally a more powerful algorithm on tabular data. Tested on both the
+4-class and binary targets, same fixed test period, with manual
+per-sample class weighting (XGBoost has no native `class_weight="balanced"`
+equivalent for multiclass — weights were computed using the standard
+`n_samples / (n_classes * class_count)` formula to approximate RF's
+built-in balancing).
+
+| Target | Metric | Random Forest | XGBoost |
+|---|---|---|---|
+| 4-class | Macro F1 | 0.39 | 0.37 |
+| 4-class | Bear F1 | 0.10 | 0.03 |
+| Binary | Risk_Off F1 | 0.48 | 0.42 |
+| Binary | Risk_Off recall | 0.59 | 0.46 |
+
+Result: **rejected on both targets.** XGBoost's manual class weighting
+appears less effective than sklearn's native `class_weight="balanced"` —
+on the 4-class target it achieved higher raw accuracy (0.66 vs. 0.52)
+only by collapsing Bear almost entirely (F1 0.03), the same "safe but
+useless" failure mode as the unweighted configs in Experiment 2. On the
+binary target, with identical overall accuracy, Random Forest still
+caught meaningfully more real Risk_Off periods (recall 0.59 vs. 0.46).
+Random Forest with `class_weight="balanced"` remains the model of record
+for both targets.
+
 ## Final Results (current)
 
 Both the original 4-class model and the binary reformulation (Experiment
@@ -367,12 +393,6 @@ if modest, edge.
   because one replaces the other.
 
 **Untried, in rough priority order:**
-- **XGBoost comparison** — installed but not yet benchmarked against the
-  tuned Random Forest, on either the 4-class or binary target. Given
-  Experiment 4's finding that Bear/Bull are data-limited rather than
-  model-limited, expect modest gains at best on the 4-class model, but
-  worth testing on the binary target too since that's the current best
-  performer.
 - **Feature pruning** — `rel_volume` (~0.02 importance) and
   `vix_change_5d` (~0.03) contribute the least; dropping them is a quick,
   low-risk experiment, unlikely to move metrics much either way.
