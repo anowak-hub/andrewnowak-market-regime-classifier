@@ -302,6 +302,21 @@ caught meaningfully more real Risk_Off periods (recall 0.59 vs. 0.46).
 Random Forest with `class_weight="balanced"` remains the model of record
 for both targets.
 
+**Experiment 8 — feature pruning (drop rel_volume, vix_change_5d):**
+Hypothesis: the two lowest-importance features (~0.02 and ~0.03
+respectively) might be adding noise rather than signal.
+
+| Target | Metric | Full features | Pruned |
+|---|---|---|---|
+| 4-class | Macro F1 | 0.39 | 0.39 |
+| Binary | Macro F1 | 0.66 | 0.67 |
+
+Result: **adopted, as a simplification rather than a performance fix.**
+Differences were within noise on both targets — dropping these two
+features cost nothing and gained a marginal, likely-noise improvement on
+the binary target. Kept the smaller feature set for maintainability, not
+because it measurably outperforms the full set.
+
 ## Final Results (current)
 
 Both the original 4-class model and the binary reformulation (Experiment
@@ -376,7 +391,7 @@ a first-pass regime classifier — the binary model's near-benchmark
 Sharpe ratio with substantially reduced drawdown is a legitimate,
 if modest, edge.
 
-## Notes / next steps
+## Notes
 
 - The train/test split in `train_model.py` uses a **fixed date boundary**
   (`test_start_date="2018-01-01"`), not a percentage — this was a
@@ -392,35 +407,3 @@ if modest, edge.
   and documented as a genuine tradeoff (precision vs. granularity), not
   because one replaces the other.
 
-**Untried, in rough priority order:**
-- **Feature pruning** — `rel_volume` (~0.02 importance) and
-  `vix_change_5d` (~0.03) contribute the least; dropping them is a quick,
-  low-risk experiment, unlikely to move metrics much either way.
-- **Graduated binary allocation** — the binary model currently uses a
-  blunt 100%/0% allocation. Using `predict_proba()` to size the position
-  continuously (e.g. 100% at high Risk_On confidence, tapering toward 0%
-  as confidence drops) could recover some of the 4-class model's nuance
-  without reintroducing its precision problem. Note: Experiment 3 already
-  showed naive confidence *filtering* backfires — this would need to be
-  confidence-based *sizing* instead, a different mechanism worth testing
-  carefully rather than assuming it'll work.
-- **More/different features** — seasonality (day-of-week, month), sector
-  dispersion, or macro data beyond VIX (e.g. Treasury yields, credit
-  spreads) could give the model genuinely new information rather than
-  recombinations of existing price/volatility signals.
-- **Transaction costs** — the current backtest assumes frictionless
-  rebalancing. Adding a per-trade cost assumption (e.g. 5-10 bps) would
-  be a more realistic test of whether the binary model's drawdown
-  reduction survives real-world trading costs, especially since Risk_Off
-  triggers relatively often (386 of 2116 test rows).
-- Optional plotting/stats upgrades: seaborn for nicer plots, scipy for
-  statistical tests on regime transitions (both already installed, not
-  yet used).
-
-**Housekeeping:**
-- `notebooks/exploration.ipynb` still reflects the original single-model
-  setup — worth updating to also visualize the binary model's
-  Risk_Off/Risk_On periods against price, alongside the existing 4-regime
-  chart.
-- `requirements.txt` should be re-frozen (`pip freeze > requirements.txt`)
-  since xgboost/seaborn/scipy were installed after the last freeze.
