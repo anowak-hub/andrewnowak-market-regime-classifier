@@ -31,6 +31,8 @@ This will:
    the model's actual predictions (`figures/equity_curve.png`)
 
 ## Project structure
+
+```
 market-regime-classifier/
 ├── data/
 │   ├── raw/            # cached raw downloads
@@ -47,6 +49,7 @@ market-regime-classifier/
 ├── models/              # saved model artifacts
 ├── requirements.txt
 └── main.py               # one-click pipeline
+```
 
 ## Regime definitions
 
@@ -323,7 +326,8 @@ Both the original 4-class model and the binary reformulation (Experiment
 6) are kept in the repo — `models/regime_model.pkl` and
 `models/regime_model_binary.pkl` — since they represent a genuine
 nuance-vs-precision tradeoff rather than one being a strictly better
-replacement for the other.
+replacement for the other. Both models use the pruned 9-feature set (see
+Experiment 8) as of this writeup.
 
 Both are trained and evaluated on the same fixed test period
 (2018-01-01 onward, 2116 rows — chosen to include the Dec 2018 selloff,
@@ -380,16 +384,17 @@ call, not something the metrics alone resolve.
 
 ### Takeaway
 
-Across all six experiments, the clearest lesson was that **Bear/Bull's
+Across all eight experiments, the clearest lesson was that **Bear/Bull's
 weakness was consistently a data scarcity and class-imbalance problem,
 not a model-capacity one** — confirmed by hyperparameter tuning barely
-moving those classes (Experiment 4) while adding more historical data
-(Experiment 5) and reducing the number of competing classes (Experiment
-6) both produced large, real improvements. Neither model beats
-buy-and-hold on raw return, which is an honest and expected result for
-a first-pass regime classifier — the binary model's near-benchmark
-Sharpe ratio with substantially reduced drawdown is a legitimate,
-if modest, edge.
+moving those classes (Experiment 4), a stronger algorithm (XGBoost)
+failing to help (Experiment 7), and feature pruning being a wash
+(Experiment 8), while adding more historical data (Experiment 5) and
+reducing the number of competing classes (Experiment 6) both produced
+large, real improvements. Neither model beats buy-and-hold on raw return,
+which is an honest and expected result for a first-pass regime classifier
+— the binary model's near-benchmark Sharpe ratio with substantially
+reduced drawdown is a legitimate, if modest, edge.
 
 ## Notes
 
@@ -407,3 +412,19 @@ if modest, edge.
   and documented as a genuine tradeoff (precision vs. granularity), not
   because one replaces the other.
 
+**Untried, in rough priority order:**
+- **Graduated binary allocation** — using `predict_proba()` to size the
+  Risk_On position continuously rather than a blunt 100%/0% cutoff. Note:
+  Experiment 3 showed naive confidence *filtering* backfires — this would
+  need to be confidence-based *sizing* instead, a different mechanism
+  worth testing carefully rather than assuming it'll work.
+- **More/different features** — seasonality (day-of-week, month), sector
+  dispersion, or macro data beyond VIX (e.g. Treasury yields, credit
+  spreads).
+- **Transaction costs** — the current backtest assumes frictionless
+  rebalancing. A per-trade cost assumption (e.g. 5-10 bps) would test
+  whether the binary model's drawdown reduction survives real trading
+  costs, given Risk_Off triggers on 386 of 2116 test rows.
+- Optional plotting/stats upgrades: seaborn for nicer plots, scipy for
+  statistical tests on regime transitions (both already installed, not
+  yet used).
